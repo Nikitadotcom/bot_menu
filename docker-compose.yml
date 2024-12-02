@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  ollama-bot:
+    build: .
+    volumes:
+      - ollama-data:/root/.ollama
+      - ollama-cache:/root/.cache/ollama
+    ports:
+      - "11434:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  ollama-data:
+  ollama-cache: 
