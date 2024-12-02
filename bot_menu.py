@@ -1,38 +1,32 @@
 import logging
-
-from telegram.ext import Updater, CommandHandler, MessageHandler
-
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
+from config import TOKEN
+from langchain_community.llms import Ollama
 
 logging.basicConfig(level=logging.INFO)
 
-TOKEN = '6554206451:AAEQ4fQ616BhgrgPOHD0KyMs5jDPIAE8x6s'
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text('Привет! Я бот с AI. Задайте мне вопрос.')
 
-def start(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text='Привет!')
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logging.info(f"Получено сообщение: {update.message.text}")
+    try:
+        llm = Ollama(model="llama2")
+        response = llm(update.message.text)
+        logging.info(f"Получен ответ от Ollama: {response}")
+        await update.message.reply_text(response)
+    except Exception as e:
+        logging.error(f"Ошибка: {str(e)}")
+        await update.message.reply_text(f"Произошла ошибка: {str(e)}")
 
 def main():
-    updater = Updater(TOKEN, use_context=True)
-    
-    dp = updater.dispatcher
-    
-    dp.add_handler(CommandHandler('start', start))
-    
-    updater.start_polling()
-    updater.idle()
+    app = Application.builder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    app.run_polling()
 
 if __name__ == '__main__':
     main()
-
-
-import requests
-
-def send_question(chat_id, question):
-    url = 'https://api.yourai.com/ask'
-    data = {'chat_id': chat_id, 'question': question}
-    
-    response = requests.post(url, json=data)
-    
-    if response.status_code == 200:
-        return response.json()['answer']
-    else:
-        return None
